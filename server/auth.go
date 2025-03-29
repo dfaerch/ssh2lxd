@@ -1,7 +1,7 @@
 package server
 
 import (
-	"ssh2lxd/util/ssh"
+	"github.com/gliderlabs/ssh"
 
 	log "github.com/sirupsen/logrus"
 )

@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"github.com/gliderlabs/ssh"
 
 	"ssh2lxd/lxd"
-	"ssh2lxd/util/ssh"
-
 	log "github.com/sirupsen/logrus"
 )
 

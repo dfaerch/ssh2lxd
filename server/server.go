@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"ssh2lxd/lxd"
-	"ssh2lxd/util/ssh"
+	"github.com/gliderlabs/ssh"
 
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/robfig/cron.v2"

@@ -12,7 +12,7 @@ import (
 	"ssh2lxd/lxd"
 	"ssh2lxd/lxd/device"
 	"ssh2lxd/util/shlex"
-	"ssh2lxd/util/ssh"
+	"github.com/gliderlabs/ssh"
 
 	"github.com/creack/pty"
 	log "github.com/sirupsen/logrus"
