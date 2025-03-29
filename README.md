@@ -48,6 +48,12 @@ systemctl start ssh2lxd.service
 journalctl -f -u ssh2lxd.service
 ```
 
+## Building from source
+
+```
+go build ./cmd/ssh2lxd/
+```
+
 ## Basic Connection
 
 To establish an SSH connection to a container running on LXD host, run:
