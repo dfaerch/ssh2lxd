@@ -2,13 +2,17 @@ package server
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"ssh2lxd/lxd"
+
 	"github.com/gliderlabs/ssh"
 
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/robfig/cron.v2"
+
+	gossh "golang.org/x/crypto/ssh"
 )
 
 type Config struct {
@@ -20,6 +24,7 @@ type Config struct {
 	Groups        string
 	HealthCheck   string
 	AllowedGroups []string
+	HostKeyFile   string
 	LxdSocket     string
 
 	lxdInfo map[string]interface{}
@@ -62,6 +67,21 @@ func Run(c *Config) {
 			"default": defaultSubsystemHandler,
 			"sftp":    sftpSubsystemHandler,
 		},
+	}
+
+	// Load persistent host key, if configured
+	if config.HostKeyFile != "" {
+		keyData, err := os.ReadFile(config.HostKeyFile)
+		if err != nil {
+			log.Fatalf("Failed to read host key file %s: %v", config.HostKeyFile, err)
+		}
+
+		signer, err := gossh.ParsePrivateKey(keyData)
+		if err != nil {
+			log.Fatalf("Failed to parse host key: %v", err)
+		}
+
+		server.AddHostKey(signer)
 	}
 
 	log.Fatal(server.ListenAndServe())
