@@ -9,7 +9,7 @@ My use case is allowing configuration management tools (e.g. Ansible, Pyinfra, C
 
 ## Features
 
-- Authentication using existing host-O/S SSH keys via `authorized_keys`
+- Authentication using existing host OS SSH keys via `authorized_keys`
 - SSH Agent forwarding into a container session
 - Full support for PTY (terminal) mode and remote command execution
 - Support for SCP and SFTP*
