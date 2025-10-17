@@ -31,13 +31,13 @@ var app *App
 var (
 	idleTimeout = 180 * time.Second
 
-	flagDebug  = false
-	flagListen = ":2222"
-	flagHelp   = false
-	flagSocket = "/var/snap/lxd/common/lxd/unix.socket"
-	flagNoauth = false
-	flagGroups = "wheel,lxd"
-
+	flagDebug       = false
+	flagListen      = ":2222"
+	flagHelp        = false
+	flagSocket      = "/var/snap/lxd/common/lxd/unix.socket"
+	flagNoauth      = false
+	flagGroups      = "wheel,lxd"
+	flagHostKey     = ""
 	flagHealthCheck = ""
 
 	flagVersion = false
@@ -64,6 +64,7 @@ func init() {
 	flag.BoolVarP(&flagVersion, "version", "v", flagVersion, "print version")
 	flag.StringVarP(&flagListen, "listen", "l", flagListen, "listen on :2222 or 127.0.0.1:2222")
 	flag.StringVarP(&flagSocket, "socket", "s", flagSocket, "LXD socket or use LXD_SOCKET")
+	flag.StringVarP(&flagHostKey, "hostkey", "", flagHostKey, "SSH host key file")
 	flag.StringVarP(&flagGroups, "groups", "g", flagGroups, "list of groups members of which allowed to connect")
 	flag.StringVarP(&flagHealthCheck, "healthcheck", "", flagHealthCheck, "enable LXD health check every X minutes, e.g. \"5m\"")
 	flag.Parse()
@@ -111,6 +112,7 @@ func init() {
 		Groups:        flagGroups,
 		HealthCheck:   flagHealthCheck,
 		AllowedGroups: allowedGroups,
+		HostKeyFile:   flagHostKey,
 		LxdSocket:     lxdSocket,
 	}
 	server.Run(config)

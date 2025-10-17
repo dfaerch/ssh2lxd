@@ -6,6 +6,7 @@ toolchain go1.24.1
 
 require (
 	github.com/creack/pty v1.1.24
+	github.com/gliderlabs/ssh v0.3.8
 	github.com/gorilla/websocket v1.5.3
 	github.com/lxc/lxd v0.0.0-20210427033910-ee6eda246a08
 	github.com/sirupsen/logrus v1.9.3
@@ -25,7 +26,6 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v0.1.0 // indirect
 	github.com/flosch/pongo2 v0.0.0-20200913210552-0d938eb266f3 // indirect
 	github.com/frankban/quicktest v1.11.3 // indirect
-	github.com/gliderlabs/ssh v0.3.8 // indirect
 	github.com/go-check/check v0.0.0-20180628173108-788fd7840127 // indirect
 	github.com/go-macaroon-bakery/macaroonpb v1.0.0 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
@@ -56,7 +56,7 @@ require (
 	golang.org/x/exp v0.0.0-20190121172915-509febef88a4 // indirect
 	golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3 // indirect
 	golang.org/x/mod v0.17.0 // indirect
-	golang.org/x/net v0.37.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be // indirect
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
