@@ -1,41 +1,68 @@
-# ssh2lxd – SSH server for LXD containers
+# ssh2lxd – SSH server for LXD/Incus containers
+
+_Note: This is a fork of [artefactcorp/ssh2lxd](https://github.com/artefactcorp/ssh2lxd), which hasn’t been updated for several years and no longer builds with modern Go. Since no one appears to be maintaining that project or accepting pull requests, I’ve applied my changes here._
 
 **ssh2lxd** is an SSH server that allows direct connections into LXD containers.
-It uses LXD API in order to establish a connection with a container and create a session.
+It uses the LXD API to establish a connection with a container and create a session.
+
+My use case is allowing configuration management tools (e.g. Ansible, Pyinfra, Chef) to deploy directly into Incus containers without having to run an SSH daemon in each container.
 
 ## Features
 
-- Authentication using existing host OS SSH keys via `authorized_keys`
+- Authentication using existing host-O/S SSH keys via `authorized_keys`
 - SSH Agent forwarding into a container session
 - Full support for PTY (terminal) mode and remote command execution
 - Support for SCP and SFTP*
-- Full Ansible support with fallback to SCP
+- Doesnt require root to run, if you allow access to the LXD socket
 
-> *SFTP support relies on `sftp-server` binary installed in a container (see below)
+> *SFTP support relies on `sftp-server` binary being installed in the container (see below)
 
-## Enterprise Features
+## Changes made in this fork
 
-- Authentication using any possible method (keys, passwords, external API integration, LDAP etc)
-- Web browser based access to a container shell using JWT tokens
-- 24/7 technical support and new feature development
+- Allow specifying an SSH host key file instead of randomly generating an RSA key at every startup.
+- Use a newer `github.com/gliderlabs/ssh` via `go.mod` instead of the bundled static version.
+  This was also necessary to support non-deprecated host key types like Ed25519.
 
-## Installation
+## Install / Building from source
 
-Download the latest package from **Releases** to an LXD host and install 
-
-#### On Ubuntu / Debian
-
-```
-apt-get install -f ./ssh2lxd_1.0-0_amd64.deb
+```bash
+go build ./cmd/ssh2lxd/
 ```
 
-#### On RHEL / CentOS / AlmaLinux
-
+Generate a host key with something like:
+```bash
+mkdir /home/ssh2lxd/.ssh2lxd/ # or wherever you want it stored.
+ssh-keygen -t ed25519 -f /home/ssh2lxd/.ssh2lxd/hostkey_ed25519 -N ''
 ```
-yum install ./ssh2lxd-1.0-0.x86_64.rpm
+
+#### Setting up ssh2lxd as a service
+
+Heres an example systemd unit file that you could add as eg. `/etc/systemd/system/ssh2lxd.service`:
+
+```ini
+[Unit]
+Description=SSH to LXD bridge (ssh2lxd)
+After=network.target
+
+[Service]
+ExecStart=/home/pyinfra/ssh2lxd -s /var/lib/incus/unix.socket -d -g ssh2lxd --hostkey /home/ssh2lxd/.ssh2lxd/ed25519_host_key
+WorkingDirectory=/home/ssh2lxd
+Restart=on-failure
+User=ssh2lxd
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
 ```
 
-#### Enable and start ssh2lxd service
+Change `User` and `WorkingDirectory` to match your setup.
+
+Customize `ExecStart`:
+- `-s` to point to your lxd/incus socket
+- make `--hostkey` point to your to host-key file.
+- remove `-d` (debug) if you dont want it in production
 
 ```
 systemctl enable ssh2lxd.service
@@ -44,21 +71,15 @@ systemctl start ssh2lxd.service
 
 #### Checking logs
 
-```
+```bash
 journalctl -f -u ssh2lxd.service
-```
-
-## Building from source
-
-```
-go build ./cmd/ssh2lxd/
 ```
 
 ## Basic Connection
 
 To establish an SSH connection to a container running on LXD host, run:
 
-```
+```bash
 ssh -p 2222 [host-user+]container-name[+container-user]@lxd-host
 ```
 
@@ -74,21 +95,21 @@ and substitute the following
 To connect to a container `ubuntu` running on LXD host with IP `1.2.3.4` as `root` user and authenticate
 as `root` on LXD host, run:
 
-```
+```bash
 ssh -p 2222 ubuntu@1.2.3.4
 ```
 
 To connect to a container `ubuntu` running on LXD host with IP `1.2.3.4` as `root` user and authenticate
 as `admin` on LXD host, run:
 
-```
+```bash
 ssh -p 2222 admin+ubuntu@1.2.3.4
 ```
 
 To connect to a container `ubuntu` running on LXD host with IP `1.2.3.4` as `ubuntu` user and authenticate
 as `root` on LXD host, run:
 
-```
+```bash
 ssh -p 2222 root+ubuntu+ubuntu@1.2.3.4
 ```
 
@@ -98,6 +119,9 @@ ssh -p 2222 root+ubuntu+ubuntu@1.2.3.4
 
 `ssh2lxd` supports SSH Agent forwarding. To make it work in a container, it will automatically add a
 proxy socket device to LXD container and remove it once SSH connection is closed.
+
+_Note of warning: SSH Agent Forwarding inherently allows the remote container, to use your agent to log in to other hosts, so you need to trust that the host or container has not been compromised. I generally advise against using SSH Agent Forwarding._
+
 
 To enable SSH agent on your local system, run:
 
@@ -133,7 +157,7 @@ Now to connect to `ubuntu` container as `root`, run:
 ssh ubuntu@lxd1
 ```
 
-> Using this method has additional security benefits and port 2222 is not exposed to the public 
+> Using this method has additional security benefits and port 2222 is not exposed to the public
 
 ### SFTP Connection
 
@@ -183,7 +207,7 @@ inventory:
 container-a ansible_user=root+c1 ansible_host=1.2.3.4 ansible_port=2222
 container-b ansible_user=root+u1+ubuntu ansible_host=1.2.3.4 ansible_port=2222 become=yes
 
-# Connection using ProxyJump configured in ssh config 
+# Connection using ProxyJump configured in ssh config
 [lxd2]
 container-c ansible_user=root+c1 ansible_host=lxd1
 container-d ansible_user=root+u1+ubuntu ansible_host=lxd1 become=yes
@@ -206,42 +230,28 @@ playbook.yml:
 ## Configuration Options
 
 By default `ssh2lxd` will listen on port `2222` and allow authentication for `root` and users who belong to the groups
-`adm,lxd` on Ubuntu / Debian LXD host and `wheel,lxd` on RHEL LXD host.
+`wheel,lxd`.
 
 To add a user to one of those groups run as root `usermod -aG lxd your-host-user`
 
-To run `ssh2lxd` with custom configuration options you can edit `/etc/default/ssh2lxd` on Ubuntu / Debian or
-`/etc/sysconfig/ssh2lxd` on RHEL systems. The following options can be added to `ARGS=`
-
 ```
 -d, --debug                enable debug log
--g, --groups string        list of groups members of which allowed to connect (default "adm,lxd")
+-g, --groups string        list of groups members of which allowed to connect (default "wheel,lxd")
     --healthcheck string   enable LXD health check every X minutes, e.g. "5m"
+-h, --help                 print help
+    --hostkey string       SSH host key file
 -l, --listen string        listen on :2222 or 127.0.0.1:2222 (default ":2222")
     --noauth               disable SSH authentication completely
 -s, --socket string        LXD socket or use LXD_SOCKET (default "/var/snap/lxd/common/lxd/unix.socket")
+-v, --version              print version
 ```
 
-For example, to enable debug log and listen on localhost change the line to `ARGS=-d -l 127.0.0.1:2222`
+For example, to enable debug log and listen on localhost add `-d -l 127.0.0.1:2222` to the command line.
+
+For Debian/Ubuntu, groups set to -g "adm,lxd" is more fitting.
+
 
 ### Firewall
 
 If you have firewall enabled on your LXD host, you may need to allow connections to port `2222`
 
-On Ubuntu / Debian
-
-```
-ufw allow 2222/tcp
-ufw reload
-```
-
-On RHEL / CentOS / AlmaLinux
-
-```
-firewall-cmd --permanent --add-port=2222/tcp
-firewall-cmd --reload
-```
-
-## Support
-
-Community support is available through **GitHub Issues**.

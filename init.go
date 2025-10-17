@@ -15,7 +15,7 @@ import (
 )
 
 var version = "devel"
-var edition = "ce"
+var edition = "ng"
 var githash = ""
 
 type App struct {
